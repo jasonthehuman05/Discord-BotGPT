@@ -37,7 +37,7 @@ namespace Discord_BotGPT
             client.Ready += BotReady;
 
             //Create event to process command
-            client.SlashCommandExecuted += commandHandler.CommandExecuted;
+            client.SlashCommandExecuted += CommandExecuted; ;
 
             //Attempt first log in
             await client.LoginAsync(TokenType.Bot, token);
@@ -47,6 +47,25 @@ namespace Discord_BotGPT
             await Task.Delay(-1);
             await client.StopAsync();
             client.Dispose();
+        }
+
+        private static async Task CommandExecuted(SocketSlashCommand arg)
+        {
+            SocketSlashCommandDataOption[] value = arg.Data.Options.ToArray();
+            string name = (string)value[0];
+
+            if(arg.CommandName == "createconversation")
+            {
+                //Create conversation
+                ITextChannel channel = arg.Channel as ITextChannel;
+                var newThread = await channel.CreateThreadAsync(
+                    name: name,
+                    autoArchiveDuration: ThreadArchiveDuration.OneDay,
+                    type: ThreadType.PublicThread
+                );
+                newThread.SendMessageAsync("OMG OMG");
+            }
+            arg.RespondAsync("working on it...");
         }
 
         /// <summary>
@@ -69,6 +88,9 @@ namespace Discord_BotGPT
             createThreadCommandBuilder.AddOption("title", ApplicationCommandOptionType.String, "Name of the thread", isRequired: true);
 
             SlashCommandProperties createThreadSCP = createThreadCommandBuilder.Build();
+
+
+            client.CreateGlobalApplicationCommandAsync(createThreadSCP);
         }
 
         private static Task MessageReceived(SocketMessage arg)
