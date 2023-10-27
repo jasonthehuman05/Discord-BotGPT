@@ -4,6 +4,7 @@ using Discord.WebSocket;
 using Newtonsoft.Json.Linq;
 using OpenAI_API;
 using System.Net.Http.Headers;
+using System.Reflection.Metadata.Ecma335;
 
 namespace Discord_BotGPT
 {
@@ -12,6 +13,9 @@ namespace Discord_BotGPT
         //Files containing tokens
         public static DiscordSocketClient client;
         static string token = File.ReadAllText(".discord");
+        static ulong botID;
+        static List<ulong> channelsToUse;
+        static Dictionary<ulong, List<Message>> MessageDatabase;
 
         static void Main(string[] args)
         {
@@ -27,6 +31,17 @@ namespace Discord_BotGPT
         /// </summary>
         static async void MainAsyncProcess()
         {
+            if (File.Exists(".channels"))
+            {
+                //Load the channels file
+                string[] channels = File.ReadAllLines(".channels");
+                //Parse it and store the data to be used
+                foreach (string channel in channels)
+                {
+                    ulong id = ulong.Parse(channel.Trim());
+                    channelsToUse.Add(id);
+                }
+            }
             //Create the discord client and wire up all needed events
             client = new DiscordSocketClient(new DiscordSocketConfig()
             {
@@ -76,8 +91,36 @@ namespace Discord_BotGPT
         {
             Console.WriteLine("Bot Ready!");
             client.MessageReceived += MessageReceived;
+            botID = client.CurrentUser.Id;
             //Create commands
             CreateCommands();
+            LoadMessagesFromChannelsAsync();
+        }
+
+        /// <summary>
+        /// Loads the messages from the channels used by the bot
+        /// </summary>
+        private static async Task LoadMessagesFromChannelsAsync()
+        {
+            foreach (ulong id in channelsToUse)
+            {
+                //Get all messages
+                IMessageChannel channel = client.GetChannel(id) as IMessageChannel;
+                ulong beforeMessageId = 0;
+                List<IMessage> messages = new List<IMessage>();
+                while (true)
+                {
+                    var messageBatch = await channel.GetMessagesAsync(100);
+                    if (messageBatch.Count() == 0)
+                    {
+                        break; // No more messages
+                    }
+
+                    messages.AddRange(messageBatch);
+                    beforeMessageId = messageBatch[messageBatch.Count() - 1].Id;
+                }
+                
+            }
         }
 
         private static void CreateCommands()
@@ -96,7 +139,27 @@ namespace Discord_BotGPT
         private static Task MessageReceived(SocketMessage arg)
         {
             Console.WriteLine($"{arg.Author}//{arg.Channel} ::: {arg.Content}");
+            //Check to see if this is a message that should be processed
+            if(arg.Author.Id == botID)
+            {
+                //its the bot, ignore it
+            }
+            else
+            {
+                //Is it in a channel we should be reading from?
+                if (channelsToUse.Contains(arg.Channel.Id))
+                {
+                    //We should use this message
+                    AddMessageToDatabase(arg.Content);
+
+                }
+            }
             return Task.CompletedTask;
+        }
+
+        private static void AddMessageToDatabase(string content)
+        {
+            throw new NotImplementedException();
         }
 
         private static Task DiscordLog(LogMessage arg) //Log any messages from the discord gateway
