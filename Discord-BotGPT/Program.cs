@@ -1,10 +1,6 @@
 ﻿using Discord;
-using Discord.Commands.Builders;
 using Discord.WebSocket;
 using Discord_BotGPT.GptInteraction;
-using Newtonsoft.Json.Linq;
-using OpenAI_API;
-using System.Net.Http.Headers;
 
 namespace Discord_BotGPT
 {
