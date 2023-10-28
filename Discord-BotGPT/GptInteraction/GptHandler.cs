@@ -39,6 +39,7 @@ namespace Discord_BotGPT.GptInteraction
 
             //receive response
             string jsonResponse = await response.Content.ReadAsStringAsync();
+            Console.WriteLine(jsonResponse);
             #endregion
             GPTResponse responseObject = JsonConvert.DeserializeObject<GPTResponse>(jsonResponse);
             //string message =

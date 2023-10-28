@@ -85,9 +85,25 @@ namespace Discord_BotGPT
                     autoArchiveDuration: ThreadArchiveDuration.OneDay,
                     type: ThreadType.PublicThread
                 );
-                newThread.SendMessageAsync("OMG OMG");
+                //newThread.SendMessageAsync("OMG OMG");
+                //Add channel id to the file
+                channelsToUse.Add(newThread.Id);
+                //reload the channel file
+                RebuildChannelFile();
             }
             arg.RespondAsync("working on it...");
+        }
+
+        private static void RebuildChannelFile()
+        {
+            //Get data as string
+            string data = "";
+            foreach(ulong id in channelsToUse)
+            {
+                data += id.ToString() + "\n";
+            }
+            data.Trim();
+            File.WriteAllText(".channels", data);
         }
 
         /// <summary>
@@ -115,45 +131,45 @@ namespace Discord_BotGPT
 
                 List<IMessage> retrievedMessages = new List<IMessage>();
 
-                IAsyncEnumerable<IReadOnlyCollection<IMessage>> msgs = sc.GetMessagesAsync();
-                IEnumerable<IMessage> messageCollection = await msgs.FlattenAsync();
-
-                foreach (IMessage msg in messageCollection)
+                if(sc != null)
                 {
-                    //Console.WriteLine($"{msg.Author.Username} ::: {msg.Content}");
-                    retrievedMessages.Add(msg);
-                }
-                while (true) { 
-                    //Console.ReadLine();
-                    if (retrievedMessages.Count % 100 == 0)
+                    IAsyncEnumerable<IReadOnlyCollection<IMessage>> msgs = sc.GetMessagesAsync();
+                    IEnumerable<IMessage> messageCollection = await msgs.FlattenAsync();
+
+                    foreach (IMessage msg in messageCollection)
                     {
-                        List<IMessage> newMessages = await RetrieveBatch(sc, retrievedMessages.Last());
-                        foreach (IMessage msg in newMessages)
-                        {
-                            retrievedMessages.Add(msg);
-                        }
+                        //Console.WriteLine($"{msg.Author.Username} ::: {msg.Content}");
+                        retrievedMessages.Add(msg);
                     }
-                    else { break; }
-                }
-                Console.WriteLine(retrievedMessages.Count);
-                List<Message> messages = new List<Message>();
+                    while (true)
+                    {
+                        //Console.ReadLine();
+                        if (retrievedMessages.Count % 100 == 0)
+                        {
+                            List<IMessage> newMessages = await RetrieveBatch(sc, retrievedMessages.Last());
+                            foreach (IMessage msg in newMessages)
+                            {
+                                retrievedMessages.Add(msg);
+                            }
+                        }
+                        else { break; }
+                    }
+                    List<Message> messages = new List<Message>();
 
-                foreach(IMessage msg in retrievedMessages)
-                {
-                    //Convert each message
-                    Message message = new Message();
-                    message.Content = msg.Content;
-                    message.Role = msg.Author.Id == botID ? "assitant" : "user";
-                    messages.Add(message);
-                }
-
-                Console.WriteLine(messages.Count);
-
-                MessageDatabase.Add(id, messages);
-
-                foreach(Message message in messages)
-                {
-                    Console.WriteLine(message.Content);
+                    foreach (IMessage msg in retrievedMessages)
+                    {
+                        //Convert each message
+                        Message message = new Message();
+                        message.Content = msg.Content;
+                        message.Role = msg.Author.Id == botID ? "assistant" : "user";
+                        messages.Add(message);
+                    }
+                    messages.Reverse();
+                    MessageDatabase.Add(id, messages);
+                    foreach (Message message in messages)
+                    {
+                        Console.WriteLine(message.Content);
+                    }
                 }
             }
         }
@@ -220,6 +236,10 @@ namespace Discord_BotGPT
 
         private static void AddMessageToDatabase(string content, ulong id)
         {
+            if (!MessageDatabase.Keys.Contains(id))
+            {
+                MessageDatabase.Add(id, new List<Message>());
+            }
             MessageDatabase[id].Add(new Message()
             {
                 Role="user",
