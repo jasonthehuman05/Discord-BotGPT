@@ -13,7 +13,7 @@ namespace Discord_BotGPT.GptInteraction
         string Model { get; set; } = "gpt-4";
 
         [JsonProperty("messages")]
-        public Message[] Messages { get; set; }
+        public Discord_BotGPT.Message[] Messages { get; set; }
     }
 
     //public class Message

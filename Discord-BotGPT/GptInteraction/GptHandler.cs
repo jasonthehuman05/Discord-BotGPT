@@ -21,10 +21,10 @@ namespace Discord_BotGPT.GptInteraction
             
             //create http client with token attached for later use
             httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Add("Authorisation", $"Bearer {token}");
+            httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
         }
 
-        public async Task<string> SendMessage(Message[] input)
+        public async Task<GPTResponse> SendMessage(Discord_BotGPT.Message[] input)
         {
             //Do some stuff to get the input
             GPTRequest data = new GPTRequest
@@ -33,13 +33,14 @@ namespace Discord_BotGPT.GptInteraction
             };
             //Send to API
             string request = JsonConvert.SerializeObject(data);
-            HttpContent c = new StringContent(request);
+            HttpContent c = new StringContent(request, Encoding.UTF8, "application/json");
             HttpResponseMessage response = await httpClient.PostAsync(apiUrl, c);
 
             //receive response
             string jsonResponse = await response.Content.ReadAsStringAsync();
-
-            return null;
+            GPTResponse responseObject = JsonConvert.DeserializeObject<GPTResponse>(jsonResponse);
+            //string message =
+            return responseObject;
         }
     }
 }

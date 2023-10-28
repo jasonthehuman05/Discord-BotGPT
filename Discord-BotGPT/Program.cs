@@ -21,6 +21,7 @@ namespace Discord_BotGPT
         static void Main(string[] args)
         {
             gpt = new GptHandler();
+            MessageDatabase = new Dictionary<ulong, List<Message>>();
             Console.WriteLine("GPT Bot");
             Console.WriteLine("Starting Bot...");
             MainAsyncProcess();
@@ -34,7 +35,7 @@ namespace Discord_BotGPT
         static async void MainAsyncProcess()
         {
             channelsToUse = new List<ulong>();
-            
+
             if (File.Exists(".channels"))
             {
                 //Load the channels file
@@ -46,8 +47,8 @@ namespace Discord_BotGPT
                     channelsToUse.Add(id);
                 }
             }
-            
-            channelsToUse.Add(1167429059190460458);
+            else { File.Create(".channels"); }
+
             //Create the discord client and wire up all needed events
             client = new DiscordSocketClient(new DiscordSocketConfig()
             {
@@ -209,8 +210,9 @@ namespace Discord_BotGPT
 
         private static async Task<string> SendMessagesToBotAsync(string content, ulong ChannelID)
         {
-            string responseMessage = await gpt.SendMessage(MessageDatabase[ChannelID].ToArray());
-            return responseMessage;
+            GPTResponse responseMessage = await gpt.SendMessage(MessageDatabase[ChannelID].ToArray());
+            string reply = responseMessage.choices[0].message.content;
+            return reply;
         }
 
         private static void AddMessageToDatabase(string content, ulong id)
@@ -218,7 +220,7 @@ namespace Discord_BotGPT
             MessageDatabase[id].Add(new Message()
             {
                 Role="user",
-                Content="content"
+                Content=content
             });
         }
 
