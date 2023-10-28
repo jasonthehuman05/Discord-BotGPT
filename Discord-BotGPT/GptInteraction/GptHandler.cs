@@ -12,6 +12,7 @@ namespace Discord_BotGPT.GptInteraction
     {
         string token;
         string apiUrl = "https://api.openai.com/v1/chat/completions";
+        public string model = "gpt-4-0613";
         HttpClient httpClient;
 
         public GptHandler() 
@@ -29,7 +30,8 @@ namespace Discord_BotGPT.GptInteraction
             //Do some stuff to get the input
             GPTRequest data = new GPTRequest
             {
-                Messages = input
+                Messages = input,
+                Model= model
             };
             //Send to API
             string request = JsonConvert.SerializeObject(data);

@@ -59,7 +59,7 @@ namespace Discord_BotGPT
             client.Ready += BotReady;
 
             //Create event to process command
-            client.SlashCommandExecuted += CommandExecuted; ;
+            client.SlashCommandExecuted += CommandExecuted;
 
             //Attempt first log in
             await client.LoginAsync(TokenType.Bot, token);
@@ -74,14 +74,15 @@ namespace Discord_BotGPT
         private static async Task CommandExecuted(SocketSlashCommand arg)
         {
             SocketSlashCommandDataOption[] value = arg.Data.Options.ToArray();
-            string name = (string)value[0];
+            string inputParameter = (string)value[0];
 
             if(arg.CommandName == "createconversation")
             {
+                arg.RespondAsync("working on it...");
                 //Create conversation
                 ITextChannel channel = arg.Channel as ITextChannel;
                 var newThread = await channel.CreateThreadAsync(
-                    name: name,
+                    name: inputParameter,
                     autoArchiveDuration: ThreadArchiveDuration.OneDay,
                     type: ThreadType.PublicThread
                 );
@@ -91,7 +92,19 @@ namespace Discord_BotGPT
                 //reload the channel file
                 RebuildChannelFile();
             }
-            arg.RespondAsync("working on it...");
+            if (arg.CommandName == "changemodel")
+            {
+                if(arg.User.Username == "jason.the.human")
+                {
+                    //Only run for me
+                    gpt.model = inputParameter;
+                    arg.RespondAsync($"SET MODEL TO {inputParameter}.");
+                }
+                else
+                {
+                    arg.RespondAsync("You can not do this");
+                }
+            }
         }
 
         private static void RebuildChannelFile()
@@ -200,6 +213,17 @@ namespace Discord_BotGPT
 
 
             client.CreateGlobalApplicationCommandAsync(createThreadSCP);
+
+
+            SlashCommandBuilder changeModelCommandBuilder = new SlashCommandBuilder();
+            changeModelCommandBuilder.WithName("changemodel");
+            changeModelCommandBuilder.WithDescription("Change the model to use with the bot");
+            changeModelCommandBuilder.AddOption("modelname", ApplicationCommandOptionType.String, "Model Name", isRequired: true);
+
+            SlashCommandProperties changeModelSCP = changeModelCommandBuilder.Build();
+
+
+            client.CreateGlobalApplicationCommandAsync(changeModelSCP);
         }
 
         private static async Task MessageReceived(SocketMessage arg)

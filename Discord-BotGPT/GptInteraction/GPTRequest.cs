@@ -10,7 +10,7 @@ namespace Discord_BotGPT.GptInteraction
     internal class GPTRequest
     {
         [JsonProperty("model")]
-        string Model { get; set; } = "gpt-4";
+        public string Model { get; set; } = "gpt-4";
 
         [JsonProperty("messages")]
         public Discord_BotGPT.Message[] Messages { get; set; }
