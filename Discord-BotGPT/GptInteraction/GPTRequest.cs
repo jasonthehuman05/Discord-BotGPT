@@ -16,12 +16,12 @@ namespace Discord_BotGPT.GptInteraction
         public Message[] Messages { get; set; }
     }
 
-    public class Message
-    {
-        [JsonProperty("role")]
-        public string Role { get; set; }
+    //public class Message
+    //{
+    //    [JsonProperty("role")]
+    //    public string Role { get; set; }
 
-        [JsonProperty("content")]
-        public string Content { get; set; }
-    }
+    //    [JsonProperty("content")]
+    //    public string Content { get; set; }
+    //}
 }

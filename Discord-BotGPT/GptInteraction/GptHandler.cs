@@ -24,7 +24,7 @@ namespace Discord_BotGPT.GptInteraction
             httpClient.DefaultRequestHeaders.Add("Authorisation", $"Bearer {token}");
         }
 
-        public async Task<string> SendMessage(GptInteraction.Message[] input)
+        public async Task<string> SendMessage(Message[] input)
         {
             //Do some stuff to get the input
             GPTRequest data = new GPTRequest

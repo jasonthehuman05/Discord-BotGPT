@@ -1,10 +1,10 @@
 ﻿using Discord;
 using Discord.Commands.Builders;
 using Discord.WebSocket;
+using Discord_BotGPT.GptInteraction;
 using Newtonsoft.Json.Linq;
 using OpenAI_API;
 using System.Net.Http.Headers;
-using System.Reflection.Metadata.Ecma335;
 
 namespace Discord_BotGPT
 {
@@ -16,9 +16,11 @@ namespace Discord_BotGPT
         static ulong botID;
         static List<ulong> channelsToUse;
         static Dictionary<ulong, List<Message>> MessageDatabase;
+        static GptHandler gpt;
 
         static void Main(string[] args)
         {
+            gpt = new GptHandler();
             Console.WriteLine("GPT Bot");
             Console.WriteLine("Starting Bot...");
             MainAsyncProcess();
@@ -31,6 +33,8 @@ namespace Discord_BotGPT
         /// </summary>
         static async void MainAsyncProcess()
         {
+            channelsToUse = new List<ulong>();
+            
             if (File.Exists(".channels"))
             {
                 //Load the channels file
@@ -42,6 +46,8 @@ namespace Discord_BotGPT
                     channelsToUse.Add(id);
                 }
             }
+            
+            channelsToUse.Add(1167429059190460458);
             //Create the discord client and wire up all needed events
             client = new DiscordSocketClient(new DiscordSocketConfig()
             {
@@ -104,23 +110,63 @@ namespace Discord_BotGPT
         {
             foreach (ulong id in channelsToUse)
             {
-                //Get all messages
-                IMessageChannel channel = client.GetChannel(id) as IMessageChannel;
-                ulong beforeMessageId = 0;
-                List<IMessage> messages = new List<IMessage>();
-                while (true)
-                {
-                    var messageBatch = await channel.GetMessagesAsync(100);
-                    if (messageBatch.Count() == 0)
-                    {
-                        break; // No more messages
-                    }
+                IMessageChannel sc = client.GetChannel(id) as IMessageChannel;
 
-                    messages.AddRange(messageBatch);
-                    beforeMessageId = messageBatch[messageBatch.Count() - 1].Id;
+                List<IMessage> retrievedMessages = new List<IMessage>();
+
+                IAsyncEnumerable<IReadOnlyCollection<IMessage>> msgs = sc.GetMessagesAsync();
+                IEnumerable<IMessage> messageCollection = await msgs.FlattenAsync();
+
+                foreach (IMessage msg in messageCollection)
+                {
+                    //Console.WriteLine($"{msg.Author.Username} ::: {msg.Content}");
+                    retrievedMessages.Add(msg);
                 }
-                
+                while (true) { 
+                    //Console.ReadLine();
+                    if (retrievedMessages.Count % 100 == 0)
+                    {
+                        List<IMessage> newMessages = await RetrieveBatch(sc, retrievedMessages.Last());
+                        foreach (IMessage msg in newMessages)
+                        {
+                            retrievedMessages.Add(msg);
+                        }
+                    }
+                    else { break; }
+                }
+
+                List<Message> messages = new List<Message>();
+
+                foreach(IMessage msg in retrievedMessages)
+                {
+                    //Convert each message
+                    Message message = new Message();
+                    message.Content = msg.Content;
+                    message.Role = msg.Author.Id == botID ? "assitant" : "user";
+                }
+
+                MessageDatabase.Add(id, messages);
+
+                foreach(Message message in messages)
+                {
+                    Console.WriteLine(message.Content);
+                }
             }
+        }
+
+        public static async Task<List<IMessage>> RetrieveBatch(IMessageChannel channel, IMessage lastMessage)
+        {
+            List<IMessage> currentBatch = new List<IMessage>();
+            IAsyncEnumerable<IReadOnlyCollection<IMessage>> msgs = channel.GetMessagesAsync(fromMessage: lastMessage, dir: Direction.Before);
+            IEnumerable<IMessage> messageCollection = await msgs.FlattenAsync();
+
+            foreach (IMessage msg in messageCollection)
+            {
+                //Console.WriteLine($"{msg.Author.Username} ::: {msg.Content}");
+                currentBatch.Add(msg);
+            }
+
+            return currentBatch;
         }
 
         private static void CreateCommands()
@@ -136,30 +182,44 @@ namespace Discord_BotGPT
             client.CreateGlobalApplicationCommandAsync(createThreadSCP);
         }
 
-        private static Task MessageReceived(SocketMessage arg)
+        private static async Task MessageReceived(SocketMessage arg)
         {
             Console.WriteLine($"{arg.Author}//{arg.Channel} ::: {arg.Content}");
             //Check to see if this is a message that should be processed
-            if(arg.Author.Id == botID)
+            if (channelsToUse.Contains(arg.Channel.Id))
             {
-                //its the bot, ignore it
-            }
-            else
-            {
-                //Is it in a channel we should be reading from?
-                if (channelsToUse.Contains(arg.Channel.Id))
+                //its in a channel we should use
+                
+                //Do we need to process it
+                if (arg.Author.Id == botID)
                 {
-                    //We should use this message
-                    AddMessageToDatabase(arg.Content);
+                    //We should use this message, but its from the bot, so no processing needs doing
+                    AddMessageToDatabase(arg.Content, arg.Channel.Id);
 
                 }
+                else
+                {
+                    //it is a user message. Process it
+                    AddMessageToDatabase(arg.Content, arg.Channel.Id);
+                    string reply = await SendMessagesToBotAsync(arg.Content, arg.Channel.Id);
+                    arg.Channel.SendMessageAsync(reply);
+                }
             }
-            return Task.CompletedTask;
         }
 
-        private static void AddMessageToDatabase(string content)
+        private static async Task<string> SendMessagesToBotAsync(string content, ulong ChannelID)
         {
-            throw new NotImplementedException();
+            string responseMessage = await gpt.SendMessage(MessageDatabase[ChannelID].ToArray());
+            return responseMessage;
+        }
+
+        private static void AddMessageToDatabase(string content, ulong id)
+        {
+            MessageDatabase[id].Add(new Message()
+            {
+                Role="user",
+                Content="content"
+            });
         }
 
         private static Task DiscordLog(LogMessage arg) //Log any messages from the discord gateway

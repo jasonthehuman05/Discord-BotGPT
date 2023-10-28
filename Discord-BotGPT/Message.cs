@@ -1,8 +1,13 @@
-﻿namespace Discord_BotGPT
+﻿using Newtonsoft.Json;
+
+namespace Discord_BotGPT
 {
     internal class Message
     {
-        string Text { get; set; }
-        string Type { get; set; }
+        [JsonProperty("content")]
+        public string Content { get; set; }
+
+        [JsonProperty("role")]
+        public string Role { get; set; }
     }
 }
