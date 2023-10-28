@@ -34,10 +34,12 @@ namespace Discord_BotGPT.GptInteraction
             //Send to API
             string request = JsonConvert.SerializeObject(data);
             HttpContent c = new StringContent(request, Encoding.UTF8, "application/json");
+            #region REMOVE COMMENTS TO USE OPENAI AGAIN
             HttpResponseMessage response = await httpClient.PostAsync(apiUrl, c);
 
             //receive response
             string jsonResponse = await response.Content.ReadAsStringAsync();
+            #endregion
             GPTResponse responseObject = JsonConvert.DeserializeObject<GPTResponse>(jsonResponse);
             //string message =
             return responseObject;

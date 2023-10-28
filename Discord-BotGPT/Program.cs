@@ -135,7 +135,7 @@ namespace Discord_BotGPT
                     }
                     else { break; }
                 }
-
+                Console.WriteLine(retrievedMessages.Count);
                 List<Message> messages = new List<Message>();
 
                 foreach(IMessage msg in retrievedMessages)
@@ -144,7 +144,10 @@ namespace Discord_BotGPT
                     Message message = new Message();
                     message.Content = msg.Content;
                     message.Role = msg.Author.Id == botID ? "assitant" : "user";
+                    messages.Add(message);
                 }
+
+                Console.WriteLine(messages.Count);
 
                 MessageDatabase.Add(id, messages);
 
